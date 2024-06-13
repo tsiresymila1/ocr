@@ -1,9 +1,8 @@
 import dataclasses
-import os.path
-import shutil
 
 import cv2
 import easyocr
+import numpy as np
 from nestipy.common import Injectable, UploadFile
 from ultralytics import YOLO
 
@@ -29,13 +28,9 @@ class AppService:
         return "test"
 
     async def post(self, data: OcrDto):
-        filepath = os.path.join(os.path.dirname(__file__), f"nestipy_{data.image.filename}")
-        file = open(filepath, 'wb')
-        shutil.copyfileobj(data.image.file, file)
-        file.close()
-        img = cv2.imread(filepath)
+        contents = await data.image.read(-1)
+        img = cv2.imdecode(np.fromstring(contents, dtype=np.uint8, count=-1),cv2.IMREAD_COLOR)
         img_to_an = img.copy()
-        img_to_an = cv2.cvtColor(img_to_an, cv2.COLOR_RGB2BGR)
         license_detections = license_plate_detector(img_to_an)[0]
         data: list[tuple[str, float]] = []
         if len(license_detections.boxes.cls.tolist()) != 0:
